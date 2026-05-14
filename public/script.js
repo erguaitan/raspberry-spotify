@@ -1,0 +1,65 @@
+const socket = new WebSocket(`ws://${window.location.host}`);
+
+const qrContainer = document.getElementById("container-qr");
+const qrElement = document.getElementById("qr");
+
+const songContainer = document.getElementById("container-song");
+const songNameContainer = document.getElementById("song-name");
+const songArtistContainer = document.getElementById("song-artist");
+const songProgressContainer = document.getElementById("song-progress");
+const songImage = document.getElementById("song-image");
+
+socket.onmessage = (event) => {
+  
+  const data = JSON.parse(event.data)
+  let typeMessage = data.typeMessage
+
+  switch (typeMessage) {
+    case "qr":
+      showQr(data)
+      break
+    case "song":
+      updateSong(data)
+      break
+    case "progress":
+      updateProgress(data)
+      break
+    default:
+      console.error("Ocurrió un error")
+  }
+};
+
+
+function showQr(data){
+  const url = `http://${window.location.host}/${data.url}`
+  qrElement.innerHTML = ""
+  const size = qrContainer.clientWidth
+  new QRCode(qrElement, {
+    text: url,
+    width: size,
+    height: size
+  });
+  
+  resetContainers(data.typeMessage)
+}
+
+function updateSong(data){
+  songImage.src = data.image
+  songNameContainer.textContent = data.song_name
+  songArtistContainer.textContent = data.artist
+  songProgressContainer.textContent = data.progress
+  
+  resetContainers(data.typeMessage)
+}
+
+function updateProgress(data){
+  songProgressContainer.textContent = data.progress
+  
+  resetContainers(data.typeMessage)
+}
+
+function resetContainers(container){
+  qrContainer.style.display = container == "qr" ? "block" : "none"
+  songContainer.style.display = (container == "song" || container == "progress")  ? "block" : "none"
+  //msgContainer.style.display = container == "message" ? "block" : "none"
+}
