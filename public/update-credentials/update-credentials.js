@@ -6,21 +6,22 @@ const clientIdInput = document.getElementById("client_id")
 const clientSecretInput = document.getElementById("client_secret")
 const redirectUriInput = document.getElementById("redirect_uri")
 
-
-function fillForm() {
+function fillForm() 
+{
   clientIdInput.value = CLIENT_ID
   clientSecretInput.value = CLIENT_SECRET
   redirectUriInput.value = REDIRECT_URI
 }
 
-async function handleSubmitForm(event) {
+async function handleSubmitForm(event) 
+{
   event.preventDefault()
 
   const credentials = {
     client_id: clientIdInput.value,
     client_secret: clientSecretInput.value,
     redirect_uri: redirectUriInput.value
-  };
+  }
 
   const response = await fetch('/update-credentials', {
     method: 'POST',
@@ -28,16 +29,15 @@ async function handleSubmitForm(event) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(credentials)
-  });
+  })
 
-  const data = await response.json();
+  const data = await response.json()
 
-  if (response.status === 200) {
-    window.location.href = data.url;
+  if (response.status === 200) 
+  {
+    window.location.href = data.url
   }
-
 }
-
 
 fillForm()
 

@@ -3,4 +3,4 @@ module.exports = {
   MSG: "message",
   SONG: "song",
   PROGRESS: "progress"
-};
+}
