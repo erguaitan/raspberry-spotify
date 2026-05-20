@@ -30,6 +30,9 @@ const wss = new WebSocket.Server({ server })
 // clientes WebSocket conectados
 const clientes = new Set()
 
+// se usa para convertir los id de canciones sin id a un string con leght concreto
+const crypto = require('crypto')
+
 // parsea automáticamente payloads JSON en el cuerpo
 app.use(express.json())
 // sirve archivos estáticos desde public/
@@ -359,27 +362,28 @@ async function updateSong ()
 
       if (item)
       {
-        data.song_name = item.name
-        data.artist = item.artists.map(artist => artist.name).join(", ")
-        data.duration = formatDuration(item.duration_ms)
-        //TODO:alb:valorar cuando una canción no tiene imagen
-        data.image = item.album.images[1].url
-        data.progress = formatDuration(dataResponse.progress_ms)
+        const songInfo = getSongInfo(dataResponse)
         
-        if (history[item.id])
+        data.song_name = songInfo.song_name
+        data.artist = songInfo.artist
+        data.duration = songInfo.duration
+        data.image = songInfo.image
+        data.progress = songInfo.progress
+        
+        if (history[songInfo.id])
         {
-          history[item.id].timeListened += msIntervaloLoop
+          history[songInfo.id].timeListened += msIntervaloLoop
         } 
         else
         {
           let newHistory = {}
-          newHistory.id = item.id
-          newHistory.song_name = data.song_name
-          newHistory.artist = data.artist
-          newHistory.image = data.image
+          newHistory.id = songInfo.id
+          newHistory.song_name = songInfo.song_name
+          newHistory.artist = songInfo.artist
+          newHistory.image = songInfo.image
           newHistory.timeListened = msIntervaloLoop
 
-          history[item.id] = newHistory
+          history[songInfo.id] = newHistory
         }
       }
       else
@@ -558,6 +562,43 @@ function formatDuration (ms)
   const secondsFormat = seconds.toString().padStart(2, '0')
 
   return `${minutesFormat}:${secondsFormat}`
+}
+
+function getSongInfo (data)
+{
+  let songInfo = {}
+  const item = data.item
+
+  try
+  {
+    let song_name = item.name ? item.name : "<sin titulo>"
+    let artist = item.artists.length > 0 ? item.artists.map(artist => artist.name).join(", ") : "<sin artista>"
+    let duration = formatDuration(item.duration_ms)
+    let image = item.album.images.length > 0 ? item.album.images[1].url : "/images/sin_portada.jpg"
+    let progress = formatDuration(data.progress_ms)
+    let id = item.id ? item.id : generateRandomIdSong(song_name + "-" + artist + "-" + duration)
+    
+    songInfo = {id, song_name, artist, duration, image, progress}
+  }
+  catch (error)
+  {
+    console.error(error)
+  }
+  
+  return songInfo
+}
+
+function generateRandomIdSong(str) {
+  const length = 18
+  const hash = crypto
+      .createHash('sha256')
+      .update(str)
+      .digest('hex')
+
+  const hashId = hash.substring(0, length)
+  const randomIdSong = "alb-" + hashId
+
+  return randomIdSong
 }
 
 // server
