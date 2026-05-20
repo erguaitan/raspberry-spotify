@@ -370,20 +370,23 @@ async function updateSong ()
         data.image = songInfo.image
         data.progress = songInfo.progress
         
-        if (history[songInfo.id])
+        if (dataResponse.is_playing)
         {
-          history[songInfo.id].timeListened += msIntervaloLoop
-        } 
-        else
-        {
-          let newHistory = {}
-          newHistory.id = songInfo.id
-          newHistory.song_name = songInfo.song_name
-          newHistory.artist = songInfo.artist
-          newHistory.image = songInfo.image
-          newHistory.timeListened = msIntervaloLoop
-
-          history[songInfo.id] = newHistory
+          if (history[songInfo.id])
+          {
+            history[songInfo.id].timeListened += msIntervaloLoop
+          } 
+          else
+          {
+            let newHistory = {}
+            newHistory.id = songInfo.id
+            newHistory.song_name = songInfo.song_name
+            newHistory.artist = songInfo.artist
+            newHistory.image = songInfo.image
+            newHistory.timeListened = msIntervaloLoop
+  
+            history[songInfo.id] = newHistory
+          }
         }
       }
       else
