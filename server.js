@@ -46,8 +46,8 @@ const CACHE_FILES = require("./constants/cache-files.js")
 
 // tiempo en milisegundos para repetir cada tipo de loop
 const msIntervaloLoop = Number(process.env.MS_INTERVALO_LOOP) || 1 * 1000 // 1 segundo
-const msIntervaSaveMemory = Number(process.env.MS_INTERVALO_SAVE_MEMORY) || 1 * 6 * 1000 // 1 minuto
-const msIntervaSaveDataBase = Number(process.env.MS_INTERVALO_SAVE_DB) || 1 * 60 * 60 * 1000 // 1 hora
+const msIntervaloSaveMemory = Number(process.env.MS_INTERVALO_SAVE_MEMORY) || 1 * 60 * 1000 // 1 minuto
+const msIntervaloSaveDataBase = Number(process.env.MS_INTERVALO_SAVE_DB) || 1 * 60 * 60 * 1000 // 1 hora
 
 
 // ---------------------
@@ -281,10 +281,9 @@ function checkCredentials()
   if (credentials.client_id && credentials.client_secret && credentials.redirect_uri)
   {
     existCredentials = true
-    return true
   } 
 
-  return false
+  return existCredentials
 }
 
 function checkToken()
@@ -308,10 +307,9 @@ function checkToken()
   if (tokenInfo.access_token && tokenInfo.refresh_token && tokenInfo.expires_in)
   {
     existToken = true
-    return true
   }
 
-  return false
+  return existToken
 }
 
 async function updateSongIfValid ()
@@ -361,17 +359,6 @@ async function updateSong ()
 
       if (item)
       {
-        const formatDuration = ((ms) => 
-        {
-          const minutes = Math.floor(ms/60000)
-          const seconds = Math.floor((ms%60000)/1000)
-
-          const minutesFormat = minutes.toString().padStart(2, '0')
-          const secondsFormat = seconds.toString().padStart(2, '0')
-
-          return `${minutesFormat}:${secondsFormat}`
-        })
-
         data.song_name = item.name
         data.artist = item.artists.map(artist => artist.name).join(", ")
         data.duration = formatDuration(item.duration_ms)
@@ -433,77 +420,105 @@ async function updateSong ()
 
 async function refreshToken()
 {
-  console.log("refreshToken in")
-  
-  let refresh_token = tokenInfo.refresh_token
-
-  const authHeader = Buffer.from(`${credentials.client_id}:${credentials.client_secret}`).toString("base64")  
-  const payload = {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${authHeader}`
-    },
-    body: new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refresh_token,
-      client_id: credentials.client_id
-    }),
-  }
-  
-  const response = await fetch("https://accounts.spotify.com/api/token", payload)
-  const data = await response.json()
-
-  if (data.refresh_token)
+  try
   {
-    refresh_token = data.refresh_token
-  }
-  
-  const newTokenInfo = fs.readFileSync(CACHE_FILES.TOKEN, 'utf8').trim()
-  tokenInfo = newTokenInfo ? JSON.parse(newTokenInfo) : {}
-  tokenInfo.access_token = data.access_token
-  tokenInfo.refresh_token = refresh_token
-  tokenInfo.expires_at = data.expires_in
-  
-  fs.writeFileSync(`${CACHE_FILES.TOKEN}`, JSON.stringify(tokenInfo, null, 2))
-  
-  console.log("Token refrescado")
-}
+    console.log("refreshToken in")
+    
+    let refresh_token = tokenInfo.refresh_token
 
+    const authHeader = Buffer.from(`${credentials.client_id}:${credentials.client_secret}`).toString("base64")  
+    const payload = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${authHeader}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: refresh_token,
+        client_id: credentials.client_id
+      }),
+    }
+    
+    const response = await fetch("https://accounts.spotify.com/api/token", payload)
+    const data = await response.json()
+    
+    if (data.refresh_token)
+    {
+      refresh_token = data.refresh_token
+    }
+    
+    if (!fs.existsSync(CACHE_FILES.TOKEN))
+    {
+      fs.writeFileSync(CACHE_FILES.TOKEN, JSON.stringify({}))
+    }
+    const newTokenInfo = fs.readFileSync(CACHE_FILES.TOKEN, 'utf8').trim()
+    tokenInfo = newTokenInfo ? JSON.parse(newTokenInfo) : {}
+    tokenInfo.access_token = data.access_token
+    tokenInfo.refresh_token = refresh_token
+    tokenInfo.expires_at = data.expires_in
+    
+    fs.writeFileSync(`${CACHE_FILES.TOKEN}`, JSON.stringify(tokenInfo, null, 2))
+    
+    console.log("Token refrescado")
+  }
+  catch (error)
+  {
+    console.error(error)
+  }
+}
 
 // metodos cargar-guardar historial
 function loadHistoryMemory()
 {
-  if (!fs.existsSync(CACHE_FILES.HISTORY))
+  try
   {
-    fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify({}))
+    if (!fs.existsSync(CACHE_FILES.HISTORY))
+    {
+      fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify({}))
+    }
+    
+    const data = fs.readFileSync(CACHE_FILES.HISTORY, 'utf8').trim()
+    history = data ? JSON.parse(data) : {}
   }
-
-  const data = fs.readFileSync(CACHE_FILES.HISTORY, 'utf8').trim()
-  history = data ? JSON.parse(data) : {}
+  catch (error)
+  {
+    console.error(error)
+  }
 }
 
 function saveHistoryMemory()
 {
-  fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify(history, null, 2))
+  try
+  {
+    fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify(history, null, 2))
+  }
+  catch (error)
+  {
+    console.error(error)
+  }
 }
 
 function saveHistoryDataBase()
 {
-  if (!fs.existsSync(CACHE_FILES.HISTORY)) return
+  try
+  {
+    saveHistoryMemory()
+    const data = fs.readFileSync(CACHE_FILES.HISTORY, 'utf8').trim()
+    historyToSave = data ? JSON.parse(data) : {}
 
-  saveHistoryMemory()
-  const data = fs.readFileSync(CACHE_FILES.HISTORY, 'utf8').trim()
-  historyToSave = data ? JSON.parse(data) : {}
+    if (historyToSave == {}) return
 
-  if (historyToSave == {}) return
-
-  // resetear el archivo del historial
-  fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify({}))
-  // TODO:alb:descomentar la linea de abajo
-  // history = {}
-  
-  // TODO:alb:guardar historial en base de datos usando historyToSave
+    // resetear el archivo del historial
+    fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify({}))
+    history = {}
+    
+    // TODO:alb:guardar historial en base de datos usando historyToSave
+  }
+  catch (error)
+  {
+    console.error(error)
+  }
 }
 
 // utils
@@ -534,6 +549,17 @@ function generateRandomString(length)
   return result
 }
 
+function formatDuration (ms) 
+{
+  const minutes = Math.floor(ms/60000)
+  const seconds = Math.floor((ms%60000)/1000)
+
+  const minutesFormat = minutes.toString().padStart(2, '0')
+  const secondsFormat = seconds.toString().padStart(2, '0')
+
+  return `${minutesFormat}:${secondsFormat}`
+}
+
 // server
 const startServer = async () => 
 {
@@ -543,14 +569,14 @@ const startServer = async () =>
 
     server.listen(SERVER.PORT, SERVER.HOST, () => {console.log(`Servidor en http://127.0.0.1:${SERVER.PORT}`)})
 
-    loop()
-    setInterval(loop, msIntervaloLoop)
-    
     loadHistoryMemory()
-    setInterval(saveHistoryMemory, msIntervaSaveMemory)
+    setInterval(saveHistoryMemory, msIntervaloSaveMemory)
     
     saveHistoryDataBase()
-    setInterval(saveHistoryDataBase, msIntervaSaveDataBase)
+    setInterval(saveHistoryDataBase, msIntervaloSaveDataBase)
+    
+    loop()
+    setInterval(loop, msIntervaloLoop)
   } 
   catch (error) 
   {
