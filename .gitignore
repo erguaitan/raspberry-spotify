@@ -1,6 +1,6 @@
 .env
-.history
 .credentials
 .token
 node_modules/
 package*
+*.db

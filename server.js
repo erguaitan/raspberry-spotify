@@ -3,7 +3,10 @@
 // ---------------------
 
 // Helpers de inicialización del ORM para Sequelize/MySQL
-const { initDb, sequelize } = require('./config/db')
+const { initDb } = require('./database/db')
+
+// importar modelo db
+const Song = require("./database/Song")
 
 // carga variables de entorno desde .env a process.env
 require('dotenv').config({ quiet: true })
@@ -49,8 +52,7 @@ const CACHE_FILES = require("./constants/cache-files.js")
 
 // tiempo en milisegundos para repetir cada tipo de loop
 const msIntervaloLoop = Number(process.env.MS_INTERVALO_LOOP) || 1 * 1000 // 1 segundo
-const msIntervaloSaveMemory = Number(process.env.MS_INTERVALO_SAVE_MEMORY) || 1 * 60 * 1000 // 1 minuto
-const msIntervaloSaveDataBase = Number(process.env.MS_INTERVALO_SAVE_DB) || 1 * 60 * 60 * 1000 // 1 hora
+const msIntervaloSaveDataBase = Number(process.env.MS_INTERVALO_SAVE_DB) || 1 * 60 * 1000 // 1 minuto
 
 
 // ---------------------
@@ -239,14 +241,14 @@ app.get(`/${QR_URL.RESET}`, async (req, res) =>
   }
   catch (error) 
   {
-    console.error(error);
+    console.error(error)
 
     res.status(500).json({
       success: false,
       message: 'Error reseteando datos'
-    });
+    })
   }
-});
+})
 
 // metodos loop principal
 function loop() 
@@ -396,7 +398,7 @@ async function updateSong ()
       {
         const songInfo = getSongInfo(dataResponse)
         
-        data.song_name = songInfo.song_name
+        data.title = songInfo.title
         data.artist = songInfo.artist
         data.duration = songInfo.duration
         data.image = songInfo.image
@@ -412,11 +414,11 @@ async function updateSong ()
           {
             let newHistory = {}
             newHistory.id = songInfo.id
-            newHistory.song_name = songInfo.song_name
+            newHistory.title = songInfo.title
             newHistory.artist = songInfo.artist
             newHistory.image = songInfo.image
             newHistory.timeListened = msIntervaloLoop
-  
+            
             history[songInfo.id] = newHistory
           }
         }
@@ -433,7 +435,7 @@ async function updateSong ()
       {
         data.typeMessage = TYPE_MSG.MSG
       }
-      else if (data.song_name != lastData.song_name && data.artist != lastData.artist) 
+      else if (data.title != lastData.title && data.artist != lastData.artist) 
       {
         data.typeMessage = TYPE_MSG.SONG
       }
@@ -513,52 +515,40 @@ async function refreshToken()
   }
 }
 
-// metodos cargar-guardar historial
-function loadHistoryMemory()
+// metodos guardar historial
+async function saveHistoryDataBase()
 {
   try
   {
-    if (!fs.existsSync(CACHE_FILES.HISTORY))
-    {
-      fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify({}))
-    }
-    
-    const data = fs.readFileSync(CACHE_FILES.HISTORY, 'utf8').trim()
-    history = data ? JSON.parse(data) : {}
-  }
-  catch (error)
-  {
-    console.error(error)
-  }
-}
-
-function saveHistoryMemory()
-{
-  try
-  {
-    fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify(history, null, 2))
-  }
-  catch (error)
-  {
-    console.error(error)
-  }
-}
-
-function saveHistoryDataBase()
-{
-  try
-  {
-    saveHistoryMemory()
-    const data = fs.readFileSync(CACHE_FILES.HISTORY, 'utf8').trim()
-    historyToSave = data ? JSON.parse(data) : {}
-
-    if (historyToSave == {}) return
-
-    // resetear el archivo del historial
-    fs.writeFileSync(CACHE_FILES.HISTORY, JSON.stringify({}))
+    historyToSave = history
     history = {}
     
-    // TODO:alb:guardar historial en base de datos usando historyToSave
+    if (Object.keys(historyToSave).length === 0) return
+    
+    for (const key in historyToSave) 
+    {
+      const songData = historyToSave[key]
+      const existingSong = await Song.findByPk(songData.id)
+
+      if (!existingSong)
+      {
+        await Song.create({
+          id: songData.id,
+          title: songData.title,
+          artist: songData.artist,
+          image: songData.image,
+          timeListened: songData.timeListened
+        })
+      }
+      else
+      {
+        await existingSong.update({
+          timeListened: existingSong.timeListened + (songData.timeListened)
+        })
+      }
+    }
+
+    console.log(">> Historial actualizado")
   }
   catch (error)
   {
@@ -612,14 +602,14 @@ function getSongInfo (data)
 
   try
   {
-    let song_name = item.name ? item.name : "<sin titulo>"
+    let title = item.name ? item.name : "<sin titulo>"
     let artist = item.artists.length > 0 ? item.artists.map(artist => artist.name).join(", ") : "<sin artista>"
     let duration = formatDuration(item.duration_ms)
     let image = item.album.images.length > 0 ? item.album.images[1].url : "/images/sin_portada.jpg"
     let progress = formatDuration(data.progress_ms)
-    let id = item.id ? item.id : generateRandomIdSong(song_name + "-" + artist + "-" + duration)
+    let id = item.id ? item.id : generateRandomIdSong(title + "-" + artist + "-" + duration)
     
-    songInfo = {id, song_name, artist, duration, image, progress}
+    songInfo = {id, title, artist, duration, image, progress}
   }
   catch (error)
   {
@@ -651,10 +641,6 @@ const startServer = async () =>
 
     server.listen(SERVER.PORT, SERVER.HOST, () => {console.log(`Servidor en http://127.0.0.1:${SERVER.PORT}`)})
 
-    loadHistoryMemory()
-    setInterval(saveHistoryMemory, msIntervaloSaveMemory)
-    
-    saveHistoryDataBase()
     setInterval(saveHistoryDataBase, msIntervaloSaveDataBase)
     
     loop()

@@ -89,19 +89,19 @@ async function handleResetTokenCredentials()
       headers: {
         'Content-Type': 'application/json'
       }
-    });
+    })
 
     if (!response.ok)
     {
-      throw new Error('Error al resetear credenciales');
+      throw new Error('Error al resetear credenciales')
     }
 
-    const data = await response.json();
-    console.log(data);
+    const data = await response.json()
+    console.log(data)
   }
   catch (error)
   {
-    console.error(error);
+    console.error(error)
   }
 }
 
