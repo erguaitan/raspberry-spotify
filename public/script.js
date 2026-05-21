@@ -12,6 +12,8 @@ const songImage = document.getElementById("song-image")
 const messageContainer = document.getElementById("container-message")
 const messageElem = document.getElementById("message")
 
+const resetBtn = document.getElementById("reset")
+
 socket.onmessage = (event) => 
 {
   const data = JSON.parse(event.data)
@@ -77,3 +79,30 @@ function resetContainers(container)
   songContainer.style.display = (container == "song" || container == "progress")  ? "block" : "none"
   messageContainer.style.display = container == "message" ? "block" : "none"
 }
+
+async function handleResetTokenCredentials()
+{
+  try
+  {
+    const response = await fetch('/reset', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok)
+    {
+      throw new Error('Error al resetear credenciales');
+    }
+
+    const data = await response.json();
+    console.log(data);
+  }
+  catch (error)
+  {
+    console.error(error);
+  }
+}
+
+resetBtn.addEventListener("click", handleResetTokenCredentials)

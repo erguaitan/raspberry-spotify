@@ -222,6 +222,32 @@ app.post(`/${QR_URL.UPDATE_TOKEN}`, async (req, res) =>
   }
 })
 
+// reset token y credenciales
+app.get(`/${QR_URL.RESET}`, async (req, res) => 
+{
+  try
+  {
+    existCredentials = false
+    credentials = {}
+    fs.writeFileSync(CACHE_FILES.CREDENTIALS, JSON.stringify({}))
+
+    existToken = false
+    tokenInfo = {}
+    fs.writeFileSync(CACHE_FILES.TOKEN, JSON.stringify({}))
+
+    res.status(200).json({success: true})
+  }
+  catch (error) 
+  {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Error reseteando datos'
+    });
+  }
+});
+
 // metodos loop principal
 function loop() 
 {
