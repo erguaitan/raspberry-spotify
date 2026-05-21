@@ -9,6 +9,9 @@ const songArtistContainer = document.getElementById("song-artist")
 const songProgressContainer = document.getElementById("song-progress")
 const songImage = document.getElementById("song-image")
 
+const messageContainer = document.getElementById("container-message")
+const messageElem = document.getElementById("message")
+
 socket.onmessage = (event) => 
 {
   const data = JSON.parse(event.data)
@@ -24,6 +27,9 @@ socket.onmessage = (event) =>
       break
     case "progress":
       updateProgress(data)
+      break
+    case "message":
+      showMessage(data)
       break
     default:
       console.error("Ocurrió un error")
@@ -58,9 +64,16 @@ function updateProgress(data)
   resetContainers(data.typeMessage)
 }
 
+function showMessage(data)
+{
+  messageElem.textContent = data.message
+
+  resetContainers(data.typeMessage)
+}
+
 function resetContainers(container)
 {
   qrContainer.style.display = container == "qr" ? "block" : "none"
   songContainer.style.display = (container == "song" || container == "progress")  ? "block" : "none"
-  //msgContainer.style.display = container == "message" ? "block" : "none"
+  messageContainer.style.display = container == "message" ? "block" : "none"
 }

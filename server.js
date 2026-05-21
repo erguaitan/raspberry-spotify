@@ -346,12 +346,18 @@ async function updateSong ()
     if (response.status == 204) 
     {
       console.log("No se está reproduciendo nada")
-      data = {[TYPE_MSG.MSG]: "No se está reproduciendo nada"}
+      data = {
+        typeMessage: TYPE_MSG.MSG,
+        [TYPE_MSG.MSG]: "No se está reproduciendo nada"
+      }
     }
     else if (response.status == 401) 
-    {
-      console.log("El token ha caducado")
-      data = {[TYPE_MSG.MSG]: "El token ha caducado"}
+      {
+        console.log("El token ha caducado")
+        data = {
+        typeMessage: TYPE_MSG.MSG,
+        [TYPE_MSG.MSG]: "El token ha caducado"
+      }
 
       await refreshToken()
     } 
@@ -391,7 +397,10 @@ async function updateSong ()
       }
       else
       {
-        data = {[TYPE_MSG.MSG]: "No se encontró información de la canción"}
+        data = {
+          typeMessage: TYPE_MSG.MSG,
+          [TYPE_MSG.MSG]: "No se encontró información de la canción"
+        }
       }
 
       if (data.message) 
@@ -413,7 +422,10 @@ async function updateSong ()
     else
     {
       console.error(`${response.status} - ${response.statusText}`)
-      data = {[TYPE_MSG.MSG]: response.statusText}
+      data = {
+        typeMessage: TYPE_MSG.MSG,
+        [TYPE_MSG.MSG]: response.statusText
+      }
     }
 
     lastData = data
