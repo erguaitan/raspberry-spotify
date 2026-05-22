@@ -1,4 +1,5 @@
 module.exports = {
-  CREDENTIALS: ".credentials",
-  TOKEN: ".token"
+  DIRECTORY: "./cache",
+  CREDENTIALS: "./cache/.credentials",
+  TOKEN: "./cache/.token"
 }

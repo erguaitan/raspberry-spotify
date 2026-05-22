@@ -4,7 +4,6 @@
 
 // Helpers de inicialización del ORM para Sequelize/MySQL
 const { initDb } = require('./database/db')
-
 // importar modelo db
 const Song = require("./database/Song")
 
@@ -619,7 +618,8 @@ function getSongInfo (data)
   return songInfo
 }
 
-function generateRandomIdSong(str) {
+function generateRandomIdSong(str)
+{
   const length = 18
   const hash = crypto
       .createHash('sha256')
@@ -632,6 +632,24 @@ function generateRandomIdSong(str) {
   return randomIdSong
 }
 
+function generateCacheFiles()
+{
+  if (!fs.existsSync(CACHE_FILES.DIRECTORY))
+  {
+    fs.mkdirSync(CACHE_FILES.DIRECTORY)
+  }
+
+  if (!fs.existsSync(CACHE_FILES.CREDENTIALS))
+  {
+    fs.writeFileSync(CACHE_FILES.CREDENTIALS, JSON.stringify({}))
+  }
+
+  if (!fs.existsSync(CACHE_FILES.TOKEN))
+  {
+    fs.writeFileSync(CACHE_FILES.TOKEN, JSON.stringify({}))
+  }
+}
+
 // server
 const startServer = async () => 
 {
@@ -640,6 +658,8 @@ const startServer = async () =>
     await initDb()
 
     server.listen(SERVER.PORT, SERVER.HOST, () => {console.log(`Servidor en http://127.0.0.1:${SERVER.PORT}`)})
+
+    generateCacheFiles()
 
     setInterval(saveHistoryDataBase, msIntervaloSaveDataBase)
     
