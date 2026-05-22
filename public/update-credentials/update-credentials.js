@@ -1,17 +1,6 @@
-const CLIENT_ID = "a835f2a1b857481994914a105154f234"
-const CLIENT_SECRET = "4ac707b29af74d4b8c14661706c7e22c"
-const REDIRECT_URI = "http://127.0.0.1:8080/callback"
-
 const clientIdInput = document.getElementById("client_id")
 const clientSecretInput = document.getElementById("client_secret")
 const redirectUriInput = document.getElementById("redirect_uri")
-
-function fillForm() 
-{
-  clientIdInput.value = CLIENT_ID
-  clientSecretInput.value = CLIENT_SECRET
-  redirectUriInput.value = REDIRECT_URI
-}
 
 async function handleSubmitForm(event) 
 {
@@ -38,8 +27,6 @@ async function handleSubmitForm(event)
     window.location.href = data.url
   }
 }
-
-fillForm()
 
 const form = document.querySelector("form")
 form.addEventListener("submit", handleSubmitForm)
